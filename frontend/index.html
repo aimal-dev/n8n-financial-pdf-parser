@@ -1,0 +1,553 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AI Bank Statement Extractor</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --primary: #6366f1;
+        --primary-dark: #4f46e5;
+        --accent: #f43f5e;
+        --bg: #0f172a;
+        --card-bg: rgba(30, 41, 59, 0.7);
+        --border: rgba(255, 255, 255, 0.1);
+        --text: #f8fafc;
+      }
+
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+        font-family: "Outfit", sans-serif;
+      }
+
+      body {
+        background: radial-gradient(circle at top right, #1e1b4b, #0f172a);
+        color: var(--text);
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        overflow-x: hidden;
+      }
+
+      header {
+        padding: 2rem;
+        text-align: center;
+        width: 100%;
+        background: rgba(15, 23, 42, 0.8);
+        backdrop-filter: blur(10px);
+        border-bottom: 1px solid var(--border);
+        margin-bottom: 3rem;
+        position: sticky;
+        top: 0;
+        z-index: 100;
+      }
+
+      h1 {
+        font-size: 2.5rem;
+        font-weight: 700;
+        background: linear-gradient(135deg, #818cf8, #f43f5e);
+        -webkit-background-clip: text;
+        background-clip: text;
+        -webkit-text-fill-color: transparent;
+        margin-bottom: 0.5rem;
+      }
+
+      .container {
+        max-width: 900px;
+        width: 95%;
+        margin-bottom: 5rem;
+      }
+
+      .main-card {
+        background: var(--card-bg);
+        backdrop-filter: blur(20px);
+        border: 1px solid var(--border);
+        border-radius: 2rem;
+        padding: 3rem;
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        animation: slideIn 0.8s ease-out;
+      }
+
+      @keyframes slideIn {
+        from {
+          transform: translateY(30px);
+          opacity: 0;
+        }
+        to {
+          transform: translateY(0);
+          opacity: 1;
+        }
+      }
+
+      .drop-zone {
+        border: 2px dashed rgba(99, 102, 241, 0.3);
+        border-radius: 1.5rem;
+        padding: 3rem;
+        text-align: center;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        background: rgba(99, 102, 241, 0.03);
+        cursor: pointer;
+        margin-bottom: 2rem;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .drop-zone:hover,
+      .drop-zone.drag-over {
+        border-color: var(--primary);
+        background: rgba(99, 102, 241, 0.08);
+        transform: scale(1.02);
+      }
+
+      .drop-zone-icon {
+        font-size: 4rem;
+        margin-bottom: 1.5rem;
+        display: inline-block;
+        filter: drop-shadow(0 0 15px rgba(99, 102, 241, 0.5));
+      }
+
+      .drop-zone-text h3 {
+        font-size: 1.5rem;
+        margin-bottom: 0.5rem;
+        color: #e2e8f0;
+      }
+
+      .drop-zone-text p {
+        color: #94a3b8;
+        font-size: 0.95rem;
+      }
+
+      #file-input {
+        display: none;
+      }
+
+      .status-container {
+        display: none;
+        margin-top: 2rem;
+        padding: 1.5rem;
+        border-radius: 1rem;
+        background: rgba(0, 0, 0, 0.2);
+        border: 1px solid var(--border);
+      }
+
+      .progress-bar {
+        height: 6px;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 3px;
+        margin: 1rem 0;
+        overflow: hidden;
+        position: relative;
+      }
+
+      .progress-fill {
+        height: 100%;
+        background: linear-gradient(90deg, #6366f1, #f43f5e);
+        width: 0%;
+        transition: width 0.4s ease;
+        box-shadow: 0 0 15px rgba(99, 102, 241, 0.6);
+      }
+
+      .status-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 0.5rem;
+      }
+
+      .status-text {
+        font-size: 0.9rem;
+        font-weight: 600;
+        color: #94a3b8;
+      }
+
+      .status-percentage {
+        color: var(--primary);
+        font-weight: 700;
+      }
+
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 1rem 2.5rem;
+        border-radius: 1rem;
+        font-weight: 700;
+        font-size: 1.1rem;
+        transition: all 0.3s;
+        cursor: pointer;
+        border: none;
+        width: 100%;
+        gap: 0.8rem;
+        text-decoration: none;
+      }
+
+      .btn-primary {
+        background: linear-gradient(
+          135deg,
+          var(--primary),
+          var(--primary-dark)
+        );
+        color: white;
+        box-shadow: 0 10px 20px -5px rgba(99, 102, 241, 0.5);
+      }
+
+      .btn-primary:hover:not(:disabled) {
+        transform: translateY(-2px);
+        box-shadow: 0 15px 30px -5px rgba(99, 102, 241, 0.6);
+      }
+
+      .btn-primary:active:not(:disabled) {
+        transform: translateY(0);
+      }
+
+      .btn:disabled {
+        background: #475569;
+        cursor: not-allowed;
+        opacity: 0.7;
+      }
+
+      .error-msg {
+        display: none;
+        color: #f87171;
+        background: rgba(248, 113, 113, 0.1);
+        padding: 1rem;
+        border-radius: 0.8rem;
+        margin-top: 1rem;
+        font-size: 0.9rem;
+        border: 1px solid rgba(248, 113, 113, 0.2);
+      }
+
+      #download-card {
+        display: none;
+        margin-top: 2rem;
+        background: linear-gradient(
+          135deg,
+          rgba(16, 185, 129, 0.1),
+          rgba(5, 150, 105, 0.1)
+        );
+        border: 1px solid rgba(16, 185, 129, 0.2);
+        border-radius: 1.5rem;
+        padding: 2rem;
+        text-align: center;
+        animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      }
+
+      @keyframes popIn {
+        from {
+          transform: scale(0.8);
+          opacity: 0;
+        }
+        to {
+          transform: scale(1);
+          opacity: 1;
+        }
+      }
+
+      .download-btn {
+        background: linear-gradient(135deg, #10b981, #059669);
+        color: white;
+        box-shadow: 0 10px 20px -5px rgba(16, 185, 129, 0.5);
+      }
+
+      .download-btn:hover {
+        box-shadow: 0 15px 30px -5px rgba(16, 185, 129, 0.6);
+        transform: translateY(-2px);
+      }
+
+      .file-info {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        background: rgba(255, 255, 255, 0.05);
+        padding: 1rem;
+        border-radius: 1rem;
+        margin-bottom: 1.5rem;
+      }
+
+      .file-icon {
+        font-size: 2rem;
+      }
+
+      .file-details h4 {
+        font-size: 1rem;
+        margin-bottom: 0.2rem;
+      }
+
+      .file-details p {
+        font-size: 0.8rem;
+        color: #94a3b8;
+      }
+
+      footer {
+        margin-top: auto;
+        padding: 2rem;
+        color: #64748b;
+        font-size: 0.9rem;
+        text-align: center;
+      }
+
+      .pulse {
+        animation: pulse 2s infinite;
+      }
+
+      @keyframes pulse {
+        0% {
+          opacity: 1;
+        }
+        50% {
+          opacity: 0.6;
+        }
+        100% {
+          opacity: 1;
+        }
+      }
+
+      /* Responsive */
+      @media (max-width: 640px) {
+        h1 {
+          font-size: 1.8rem;
+        }
+        .main-card {
+          padding: 1.5rem;
+        }
+        .drop-zone {
+          padding: 2rem 1rem;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>AI Bank Extractor</h1>
+      <p style="color: #94a3b8">
+        Transform statements into Excel using Gemini 1.5 Flash
+      </p>
+    </header>
+
+    <div class="container">
+      <div class="main-card">
+        <div id="drop-zone" class="drop-zone">
+          <input type="file" id="file-input" accept=".pdf,image/*" />
+          <span class="drop-zone-icon">📄</span>
+          <div class="drop-zone-text">
+            <h3>Drop your statement here</h3>
+            <p>Support PDF, PNG, JPG (Max 10MB)</p>
+          </div>
+        </div>
+
+        <div id="file-info" class="file-info" style="display: none">
+          <span class="file-icon">📈</span>
+          <div class="file-details">
+            <h4 id="selected-file-name">statement.pdf</h4>
+            <p id="selected-file-size">2.4 MB</p>
+          </div>
+          <button
+            id="remove-file"
+            style="
+              margin-left: auto;
+              background: none;
+              border: none;
+              color: #f43f5e;
+              cursor: pointer;
+              font-size: 1.2rem;
+            "
+          >
+            ✕
+          </button>
+        </div>
+
+        <button id="extract-btn" class="btn btn-primary" disabled>
+          <span>🚀</span> Start AI Extraction
+        </button>
+
+        <div id="status-container" class="status-container">
+          <div class="status-header">
+            <span id="status-text" class="status-text">Uploading to AI...</span>
+            <span id="status-percentage" class="status-percentage">0%</span>
+          </div>
+          <div class="progress-bar">
+            <div id="progress-fill" class="progress-fill"></div>
+          </div>
+          <p
+            id="extraction-note"
+            style="font-size: 0.8rem; color: #64748b; text-align: center"
+            class="pulse"
+          >
+            AI is analyzing headers and transactions...
+          </p>
+        </div>
+
+        <div id="error-msg" class="error-msg"></div>
+
+        <div id="download-card">
+          <div style="font-size: 3rem; margin-bottom: 1rem">✅</div>
+          <h3 style="margin-bottom: 0.5rem">Extraction Complete!</h3>
+          <p style="color: #64748b; margin-bottom: 1.5rem">
+            Your Excel file is ready for download.
+          </p>
+          <a id="download-link" href="#" class="btn download-btn">
+            <span>📊</span> Download Excel (.xlsx)
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <footer>
+      <p>&copy; 2024 AI Financial Tools. Built with n8n & Google Gemini.</p>
+    </footer>
+
+    <script>
+      const dropZone = document.getElementById("drop-zone");
+      const fileInput = document.getElementById("file-input");
+      const extractBtn = document.getElementById("extract-btn");
+      const statusContainer = document.getElementById("status-container");
+      const progressFill = document.getElementById("progress-fill");
+      const statusText = document.getElementById("status-text");
+      const statusPercentage = document.getElementById("status-percentage");
+      const downloadCard = document.getElementById("download-card");
+      const downloadLink = document.getElementById("download-link");
+      const fileInfo = document.getElementById("file-info");
+      const errorMsg = document.getElementById("error-msg");
+
+      let selectedFile = null;
+
+      // Click to upload
+      dropZone.addEventListener("click", () => fileInput.click());
+
+      // Drag and drop
+      dropZone.addEventListener("dragover", (e) => {
+        e.preventDefault();
+        dropZone.classList.add("drag-over");
+      });
+
+      dropZone.addEventListener("dragleave", () => {
+        dropZone.classList.remove("drag-over");
+      });
+
+      dropZone.addEventListener("drop", (e) => {
+        e.preventDefault();
+        dropZone.classList.remove("drag-over");
+        if (e.dataTransfer.files.length > 0) {
+          handleFileSelect(e.dataTransfer.files[0]);
+        }
+      });
+
+      fileInput.addEventListener("change", (e) => {
+        if (e.target.files.length > 0) {
+          handleFileSelect(e.target.files[0]);
+        }
+      });
+
+      function handleFileSelect(file) {
+        selectedFile = file;
+        document.getElementById("selected-file-name").textContent = file.name;
+        document.getElementById("selected-file-size").textContent =
+          (file.size / (1024 * 1024)).toFixed(2) + " MB";
+
+        fileInfo.style.display = "flex";
+        dropZone.style.display = "none";
+        extractBtn.disabled = false;
+        errorMsg.style.display = "none";
+        downloadCard.style.display = "none";
+      }
+
+      document.getElementById("remove-file").addEventListener("click", () => {
+        selectedFile = null;
+        fileInfo.style.display = "none";
+        dropZone.style.display = "block";
+        extractBtn.disabled = true;
+        fileInput.value = "";
+      });
+
+      extractBtn.addEventListener("click", async () => {
+        if (!selectedFile) return;
+
+        // Reset UI
+        extractBtn.disabled = true;
+        statusContainer.style.display = "block";
+        errorMsg.style.display = "none";
+        downloadCard.style.display = "none";
+
+        // Progress animation simulation
+        let progress = 0;
+        const progressInterval = setInterval(() => {
+          if (progress < 90) {
+            progress += Math.random() * 5;
+            updateProgress(Math.min(progress, 90));
+          }
+        }, 800);
+
+        try {
+          const formData = new FormData();
+          formData.append("file", selectedFile);
+
+          console.log("Sending to n8n...");
+          statusText.textContent = "AI Analysis in progress...";
+
+          const response = await fetch(
+            "http://localhost:5678/webhook/extract-statement",
+            {
+              method: "POST",
+              body: formData,
+            },
+          );
+
+          if (!response.ok) {
+            throw new Error(
+              `Server returned ${response.status}: ${await response.text()}`,
+            );
+          }
+
+          // Process Binary Response (Excel)
+          const blob = await response.blob();
+          const url = window.URL.createObjectURL(blob);
+
+          clearInterval(progressInterval);
+          updateProgress(100);
+          statusText.textContent = "Processing complete!";
+
+          // Show download link
+          downloadLink.href = url;
+          downloadLink.download = `Extracted_Statement_${Date.now()}.xlsx`;
+
+          setTimeout(() => {
+            statusContainer.style.display = "none";
+            downloadCard.style.display = "block";
+          }, 500);
+        } catch (err) {
+          console.error(err);
+          clearInterval(progressInterval);
+          statusContainer.style.display = "none";
+          errorMsg.textContent =
+            "Error: " +
+            err.message +
+            ". Please make sure n8n is running and its Webhook node is Active.";
+          errorMsg.style.display = "block";
+          extractBtn.disabled = false;
+        }
+      });
+
+      function updateProgress(value) {
+        const roundedValue = Math.round(value);
+        progressFill.style.width = roundedValue + "%";
+        statusPercentage.textContent = roundedValue + "%";
+
+        if (roundedValue > 30)
+          statusText.textContent = "Reading document structure...";
+        if (roundedValue > 60)
+          statusText.textContent = "Extracting transaction rows...";
+        if (roundedValue > 85)
+          statusText.textContent = "Generating Excel file...";
+      }
+    </script>
+  </body>
+</html>

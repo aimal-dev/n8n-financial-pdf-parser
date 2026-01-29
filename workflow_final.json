@@ -1,0 +1,112 @@
+{
+  "name": "AI Statement Extractor - Pro",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "extract-statement",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-node",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [250, 300],
+      "webhookId": "extract-statement"
+    },
+    {
+      "parameters": {
+        "resource": "document",
+        "prompt": "Extract all transaction data from the bank statement and return it as a JSON array of objects. Headers should be keys.",
+        "inputBinaryField": "file",
+        "simplifyOutput": true
+      },
+      "id": "gemini-node",
+      "name": "Analyze document",
+      "type": "n8n-nodes-base.googleGemini",
+      "typeVersion": 1,
+      "position": [450, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $input.all()[0].json;\nlet rawData = input.text || input.output || input.response || input;\n\nif (typeof rawData === 'string') {\n    const match = rawData.match(/\\[[\\s\\S]*\\]/);\n    rawData = match ? JSON.parse(match[0]) : JSON.parse(rawData);\n}\n\nconst finalData = Array.isArray(rawData) ? rawData : [rawData];\nreturn finalData.map(row => ({ json: row }));"
+      },
+      "id": "code-node",
+      "name": "Clean JSON",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [650, 300]
+    },
+    {
+      "parameters": {
+        "operation": "toBinaryFile",
+        "fileFormat": "xlsx",
+        "options": {}
+      },
+      "id": "excel-node",
+      "name": "Convert to File",
+      "type": "n8n-nodes-base.spreadsheetFile",
+      "typeVersion": 1,
+      "position": [850, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "binary",
+        "responseBinaryPropertyName": "data",
+        "options": {}
+      },
+      "id": "respond-node",
+      "name": "Respond with Excel",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1050, 300]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Analyze document",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Analyze document": {
+      "main": [
+        [
+          {
+            "node": "Clean JSON",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Clean JSON": {
+      "main": [
+        [
+          {
+            "node": "Convert to File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Convert to File": {
+      "main": [
+        [
+          {
+            "node": "Respond with Excel",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}
