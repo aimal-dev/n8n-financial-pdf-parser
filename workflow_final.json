@@ -29,7 +29,7 @@
     {
       "parameters": {
         "source": "defineBelow",
-        "prompt": "Extract all transaction rows from the following bank statement text and return it as a JSON array of objects. \n\nInstructions:\n1. Include Date, Description, Amount, and the Balance for each row.\n2. Ensure the JSON keys are consistent.\n3. Return ONLY the raw JSON array.\n\nText:\n{{ $json.text }}"
+        "prompt": "Extract the account holder's metadata and the transaction table from the text below. Return it as a JSON object with 'metadata' and 'transactions' keys.\n\nInstructions:\n1. Find Account Title, Number, IBAN, and Currency.\n2. Extract all transaction rows with Date, Description, Amount, and Balance.\n3. Return ONLY the raw JSON.\n\nText:\n{{ $json.text }}"
       },
       "id": "llm-chain-node",
       "name": "Basic LLM Chain",
@@ -39,7 +39,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const input = $input.all()[0].json;\nlet raw = input.text || input.output || input.response || input;\n\nif (typeof raw === 'string') {\n    const match = raw.match(/\\[[\\s\\S]*\\]/);\n    raw = match ? JSON.parse(match[0]) : JSON.parse(raw);\n}\n\nconst data = Array.isArray(raw) ? raw : [raw];\nreturn data.map(item => ({ json: item }));"
+        "jsCode": "const input = $input.all()[0];\nlet rawData = input.json.text || input.json.output || input.json.response || (input.json.message && input.json.message.content) || \"\";\n\nif (!rawData || (typeof rawData === 'string' && rawData.trim() === \"\")) {\n    return [{ json: { ERROR: \"AI returned no data.\" } }];\n}\n\nlet result = [];\ntry {\n    if (typeof rawData === 'string') {\n        const cleanStr = rawData.replace(/```json|```/g, \"\").trim();\n        const match = cleanStr.match(/\\[[\\s\\S]*\\]|{[\\s\\S]*}/);\n        result = match ? JSON.parse(match[0]) : JSON.parse(cleanStr);\n    } else {\n        result = rawData;\n    }\n\n    if (!Array.isArray(result) && typeof result === 'object') {\n        const transactions = result.transactions || result.data || result.rows || [];\n        const metadata = result.metadata || result.account_details || {};\n        if (Array.isArray(transactions)) {\n            result = transactions.map(t => ({ ...metadata, ...t }));\n        }\n    }\n} catch (e) {\n    result = [{ raw_ai_response: rawData }];\n}\n\nconst finalArray = Array.isArray(result) ? result : [result];\nreturn finalArray.map(item => ({ json: item }));"
       },
       "id": "code-node",
       "name": "Clean JSON",
