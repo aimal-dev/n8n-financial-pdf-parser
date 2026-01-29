@@ -4,6 +4,10 @@ Transform your bank statements (PDF/Images) into structured Excel files using **
 
 ![n8n Workflow](./assets/workflow_screenshot.png)
 
+### ✅ Successful Execution
+
+![Execution Success](./assets/execution_success.png)
+
 ## ✨ Features
 
 - **AI Powered:** Uses Gemini 1.5 Flash to intelligently extract transaction data.
