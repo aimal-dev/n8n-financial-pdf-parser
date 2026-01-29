@@ -2,7 +2,7 @@
 
 Transform your bank statements (PDF/Images) into structured Excel files using **n8n** and **Google Gemini AI**.
 
-![n8n Workflow](./assets/workflow_screenshot.png)
+![n8n Workflow](./assets/workflow_screenshot-2.png)
 
 ### ✅ Successful Execution
 
